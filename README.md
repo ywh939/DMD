@@ -24,7 +24,7 @@ This repo is the official implementation of 3D object detection in dust
   ├── data: the path of raw data of different dataset
   ├── output: the path of trained model
   al3d_utils: the shared utils used in every algorithm modules
-  docs: the readme docs for LoGoNet
+  docs: the readme docs for DMD
   ```
 
 ## Running

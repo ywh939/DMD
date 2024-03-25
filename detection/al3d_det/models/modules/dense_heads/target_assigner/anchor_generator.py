@@ -51,7 +51,7 @@ class AnchorGenerator(object):
             # fig = plt.figure()
             # ax = fig.add_subplot(111, projection='3d')
             # ax.scatter(grid_np[0], grid_np[1], grid_np[2], s=10)
-            # plt.savefig('/root/LoGoNet-py37/detection/tools/grid.png')
+            # plt.savefig('/root//detection/tools/grid.png')
             
             anchors = torch.stack((x_shifts, y_shifts, z_shifts), dim=-1)  # [17, 20, 1, 3]
             anchors = anchors[:, :, :, None, :].repeat(1, 1, 1, anchor_size.shape[0], 1) # [17, 20, 1, 1, 3]

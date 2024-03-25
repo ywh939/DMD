@@ -471,13 +471,13 @@ class DustDataset(torch_data.Dataset):
         eval_det_annos = copy.deepcopy(det_annos)
         eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.dust_infos]
 
-        # annos_path_root = "/root/LoGoNet-py37/annos/origin/"
+        # annos_path_root = "/root//annos/origin/"
         # import torch
         # for obj in eval_det_annos:
         #     boxes_lidar_path = annos_path_root + obj['frame_id'] + '.pth'
         #     torch.save(obj['boxes_lidar'], boxes_lidar_path)
 
-        # annos_path_root = "/root/LoGoNet-py37/annos/raw/"
+        # annos_path_root = "/root//annos/raw/"
         # for obj in self.dust_infos:
         #     boxes_lidar_path = annos_path_root + obj['point_cloud']['lidar_idx'] + '.pth'
         #     torch.save(obj['annos']['gt_boxes_lidar'], boxes_lidar_path)

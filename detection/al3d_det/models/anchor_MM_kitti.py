@@ -85,7 +85,7 @@ class ANCHORMMKITTI(nn.Module):
     def forward(self, batch_dict):
         batch_dict = self.camera.img_backbone(batch_dict)
 
-        # img_feat_path_root = "/root/LoGoNet-py37/img_feat/img_feat_origin/"
+        # img_feat_path_root = "/root//img_feat/img_feat_origin/"
         # for id in batch_dict['frame_id']:
         #     img_feat_path_raw = img_feat_path_root + id + '_raw.pth'
         #     img_feat_path_extract = img_feat_path_root + id + '_ext.pth'
