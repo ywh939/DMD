@@ -1,0 +1,139 @@
+import torch
+import torch.nn as nn
+
+class simam_module(torch.nn.Module):
+    def __init__(self, channels = None, e_lambda = 0.1):
+        super(simam_module, self).__init__()
+
+        self.activaton = nn.Sigmoid()
+        self.e_lambda = e_lambda
+
+    def __repr__(self):
+        s = self.__class__.__name__ + '('
+        s += ('lambda=%f)' % self.e_lambda)
+        return s
+
+    @staticmethod
+    def get_module_name():
+        return "simam"
+
+    def forward(self, x):
+
+        b, c, h, w = x.size()
+        
+        n = w * h - 1
+
+        x_minus_mu_square = (x - x.mean(dim=[2,3], keepdim=True)).pow(2)
+        y = x_minus_mu_square / (4 * (x_minus_mu_square.sum(dim=[2,3], keepdim=True) / n + self.e_lambda)) + 0.5
+
+        return x * self.activaton(y)
+    
+class Attention(nn.Module):
+    def __init__(self, channels):
+        super(Attention, self).__init__()
+        self.pseudo_in, self.valid_in = channels #  128, 128
+        middle = self.valid_in // 4 # 32
+        self.fc1 = nn.Linear(self.pseudo_in, middle) # 128, 32
+        self.fc2 = nn.Linear(self.valid_in, middle) # 128, 32
+        self.fc3 = nn.Linear(2*middle, 2) # 64 2
+        self.conv1 = nn.Sequential(nn.Conv1d(self.pseudo_in, self.valid_in, 1),
+                                    nn.BatchNorm1d(self.valid_in),
+                                    nn.ReLU())
+        self.conv2 = nn.Sequential(nn.Conv1d(self.valid_in, self.valid_in, 1),
+                                    nn.BatchNorm1d(self.valid_in),
+                                    nn.ReLU())
+
+    def forward(self, pseudo_feas, valid_feas): # 2x(128, 128, 216)
+        batch = pseudo_feas.size(0)
+
+        pseudo_feas_f = pseudo_feas.transpose(1,2).contiguous().view(-1, self.pseudo_in) #(27648, 128)
+        valid_feas_f = valid_feas.transpose(1,2).contiguous().view(-1, self.valid_in) #(27648, 128)
+
+        pseudo_feas_f_ = self.fc1(pseudo_feas_f) # 27648, 32
+        valid_feas_f_ = self.fc2(valid_feas_f) # 27648, 32
+        pseudo_valid_feas_f = torch.cat([pseudo_feas_f_, valid_feas_f_],dim=-1) # [27648, 64] 
+        weight = torch.sigmoid(self.fc3(pseudo_valid_feas_f)) # 27648, 2
+
+        pseudo_weight = weight[:,0].squeeze() # 27648
+        pseudo_weight = pseudo_weight.view(batch, 1, -1) # 128, 1, 216
+
+        valid_weight = weight[:,1].squeeze() # 27648
+        valid_weight = valid_weight.view(batch, 1, -1) # 128, 1, 216
+
+        pseudo_features_att = self.conv1(pseudo_feas)  * pseudo_weight # 128, 128, 216
+        valid_features_att     =  self.conv2(valid_feas)      *  valid_weight# 128, 128, 216
+
+        return pseudo_features_att, valid_features_att
+
+class GAF(nn.Module):
+    def __init__(self, pseudo_in, valid_in, outplanes): # (128 128 256)
+        super(GAF, self).__init__()
+        self.attention = Attention(channels = [pseudo_in, valid_in])
+        self.conv1 = torch.nn.Conv1d(valid_in + valid_in, outplanes, 1)
+        self.bn1 = torch.nn.BatchNorm1d(outplanes)
+
+    def forward(self, pseudo_features, valid_features):
+        pseudo_features_att, valid_features_att=  self.attention(pseudo_features, valid_features)
+        fusion_features = torch.cat([valid_features_att, pseudo_features_att], dim=1)#[128, 256, 216]
+        fusion_features = F.relu(self.bn1(self.conv1(fusion_features))) #128, 256, 216
+
+        return fusion_features
+
+class AdaptivaeAttention(nn.Module):
+    def __init__(self, pooled_input, local_input, middle): #128, 128, 32
+        super(AdaptivaeAttention, self).__init__()
+        
+        self.pooled_input = pooled_input
+        self.local_input = local_input
+        self.middle = middle
+        
+        self.fc1 = nn.Linear(self.pooled_input, self.middle) # 128, 32
+        self.fc2 = nn.Linear(self.local_input, self.middle) # 128, 32
+        self.fc3 = nn.Sequential(nn.Linear(2 * self.middle, 2),
+                                 nn.Sigmoid()
+                                 )  # 64, 2
+        
+        self.conv1 = nn.Sequential(nn.Conv1d(self.pooled_input, self.pooled_input, 1),
+                                    nn.BatchNorm1d(self.pooled_input),
+                                    nn.ReLU())
+        self.conv2 = nn.Sequential(nn.Conv1d(self.local_input, self.local_input, 1),
+                                    nn.BatchNorm1d(self.local_input),
+                                    nn.ReLU())
+        
+    def forward(self, pooled_features, local_features): #(B, 216, 128)
+        batch = pooled_features.size(0)
+        
+        pooled_features_dense = pooled_features.contiguous().view(-1, self.pooled_input) # (Bx216, 128)
+        local_features_dense = local_features.contiguous().view(-1, self.local_input) # (Bx216, 128)
+        
+        pooled_features_fc = self.fc1(pooled_features_dense) # (Bx216, 32)
+        local_features_fc = self.fc2(local_features_dense) # (Bx216, 32)
+        
+        concat_features = torch.concat((pooled_features_fc, local_features_fc), -1) # (Bx216, 64)
+        
+        weights = self.fc3(concat_features) # (Bx216, 2)
+        
+        pooled_weight = weights[:,0].squeeze().view(batch, 1, -1) # (B, 1, 216)
+        local_weight = weights[:,1].squeeze().view(batch, 1, -1) # (B, 1, 216)
+        
+        pooled_features_conv = self.conv1(pooled_features.permute(0, 2, 1)) # ([B, 128, 216])
+        local_features_conv = self.conv2(local_features.permute(0, 2, 1)) # ([B, 128, 216])
+
+        pooled_features_out = pooled_features_conv * pooled_weight # B, 128, 216
+        local_features_out = local_features_conv * local_weight# B, 128, 216
+
+        return pooled_features_out, local_features_out
+
+class GridFeaturesAdaptiveFusion(nn.Module):
+    def __init__(self, pooled_input, local_input, middle, output): # 128, 128, 32, 256
+        super(GridFeaturesAdaptiveFusion, self).__init__()
+        self.adaptive_attention = AdaptivaeAttention(pooled_input, local_input, middle)
+        self.conv1 = nn.Sequential(nn.Conv1d(pooled_input + local_input, output, 1),
+                                   nn.BatchNorm1d(output),
+                                   nn.ReLU())
+    
+    def forward(self, pooled_features, local_features):
+        pooled_features_adaptive_attention, local_features_adaptive_attention = self.adaptive_attention(pooled_features, local_features)
+        fusion_features = self.conv1(torch.concat((pooled_features_adaptive_attention, local_features_adaptive_attention), 1))
+        
+        return fusion_features.permute(0, 2, 1)

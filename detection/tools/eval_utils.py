@@ -54,7 +54,7 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
         progress_bar = tqdm.tqdm(total=len(dataloader), leave=True, desc='eval', dynamic_ncols=True)
     start_time = time.time()
     for i, batch_dict in enumerate(dataloader):
-        if 'kitti' in cfg.DATA_CONFIG.DATASET.lower():
+        if 'kitti' or 'dust' in cfg.DATA_CONFIG.DATASET.lower():
             load_data_to_gpukitti(batch_dict)
         else:
             load_data_to_gpu(batch_dict)
@@ -109,8 +109,8 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
     logger.info('Average predicted number of objects(%d samples): %.3f'
                 % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
 
-    with open(result_dir / 'result.pkl', 'wb') as f:
-        pickle.dump(det_annos, f)
+    # with open(result_dir / 'result.pkl', 'wb') as f:
+    #     pickle.dump(det_annos, f)
 
     result_str, result_dict = dataset.evaluation(
         det_annos, class_names,

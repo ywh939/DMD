@@ -8,7 +8,7 @@ try:
 except:
     pass
 from collections import OrderedDict
-from al3d_det.models.image_modules.ifn.basic_blocks import BasicBlock2D
+from al3d_det.models.image_modules.ifn.basic_blocks import BasicBlock2D    
 class MMDETFPNKITTI(nn.Module):
     def __init__(self, model_cfg):
         super().__init__()
@@ -33,6 +33,8 @@ class MMDETFPNKITTI(nn.Module):
                          "stride": model_cfg.IFN.CHANNEL_REDUCE["stride"][_idx],
                          "bias": model_cfg.IFN.CHANNEL_REDUCE["bias"][_idx]}
             self.reduce_blocks.append(BasicBlock2D(**block_cfg))
+            
+        # self.simam = simam_module()
 
     def get_output_feature_dim(self):
         return self.out_channels
@@ -67,6 +69,10 @@ class MMDETFPNKITTI(nn.Module):
             if layer not in batch_dict['image_features'].keys():
                 batch_dict['image_features'][layer] = {}
             batch_dict['image_features'][layer]= single_result[layer]
+            
+        # simam_features = self.simam(batch_dict['image_features'][layer])
+        # batch_dict['image_features'][layer] = simam_features
+        
         return batch_dict
 
     def preprocess(self, images):

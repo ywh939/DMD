@@ -1,0 +1,12 @@
+Host github.com
+	HostName github.com
+	User git
+	AddKeysToAgent yes
+	PreferredAuthentications publickey
+	IdentityFile /root/map-volume/trans-1
+Host tencentgit
+        HostName 101.42.254.22
+        User ygit
+        AddKeysToAgent yes
+        PreferredAuthentications publickey
+        IdentityFile /root/map-volume/trans-1

@@ -20,7 +20,7 @@ def get_kitti_info_path(idx,
                         relative_path=True):
     img_idx_str = get_image_index_str(idx)
     img_idx_str += file_tail
-    if 's3' not in prefix:
+    if 's3' not in str(prefix):
         prefix = pathlib.Path(prefix)
         if training:
             file_path = pathlib.Path('training') / info_type / img_idx_str

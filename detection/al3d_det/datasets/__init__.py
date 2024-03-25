@@ -4,18 +4,21 @@ from torch.utils.data import DistributedSampler as _DistributedSampler
 
 from al3d_utils import common_utils
 
-from .dataset import DatasetTemplate
-from .dataset_kitti import DatasetTemplate_KITTI
-from .waymo.waymo_dataset import WaymoTrainingDataset, WaymoInferenceDataset
+# from .dataset import DatasetTemplate
+# from .dataset_kitti import DatasetTemplate_KITTI
+# from .waymo.waymo_dataset import WaymoTrainingDataset, WaymoInferenceDataset
 from .kitti.kitti_dataset import KittiDataset
-from .nuscenes.nuscenes_dataset import NuScenesDataset
+# from .nuscenes.nuscenes_dataset import NuScenesDataset
+from .dust.dust_dataset import DustDataset
+
 __all__ = {
-    'DatasetTemplate': DatasetTemplate,
-    'WaymoTrainingDataset': WaymoTrainingDataset,
-    'WaymoInferenceDataset': WaymoInferenceDataset,
-    'DatasetTemplate_KITTI': DatasetTemplate_KITTI,
+    # 'DatasetTemplate': DatasetTemplate,
+    # 'WaymoTrainingDataset': WaymoTrainingDataset,
+    # 'WaymoInferenceDataset': WaymoInferenceDataset,
+    # 'DatasetTemplate_KITTI': DatasetTemplate_KITTI,
     'KittiDataset': KittiDataset,
-    'NuScenesDataset': NuScenesDataset
+    # 'NuScenesDataset': NuScenesDataset,
+    'DustDataset': DustDataset
 }
 
 
@@ -79,3 +82,17 @@ def build_dataloader(dataset_cfg, class_names, batch_size, dist, root_path=None,
     )
 
     return dataset, dataloader, sampler
+
+def test_create_kitti_infos(dataset_cfg, root_dir):
+    from .kitti.kitti_dataset import create_kitti_infos
+    create_kitti_infos(dataset_cfg=dataset_cfg,
+        class_names=['Car', 'Pedestrian', 'Cyclist'],
+        data_path=root_dir / 'data' / 'kitti_temo',
+        save_path=root_dir / 'data' / 'kitti_temo')
+
+def test_create_dust_infos(dataset_cfg, root_dir):
+    from .dust.dust_dataset import create_dust_infos
+    create_dust_infos(dataset_cfg=dataset_cfg,
+        class_names=['Car'],
+        data_path=root_dir / 'data' / 'dust',
+        save_path=root_dir / 'data' / 'dust')

@@ -64,7 +64,17 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
 def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_cfg,
                 start_epoch, total_epochs, start_iter, rank, tb_log, ckpt_save_dir, train_sampler=None,
                 lr_warmup_scheduler=None, ckpt_save_interval=1, max_ckpt_save_num=50,
-                merge_all_iters_to_one_epoch=False):
+                merge_all_iters_to_one_epoch=False, is_dist=False, cfg=None, args=None, output_dir=None, logger=None):
+    
+    # from .eval_train_with_eval import get_eval_datas, eval_train_with_val_per_epoch2, log_2_tensorboard
+    # eval_output_dir, train_eval_cfg, val_eval_cfg, train_dataloader_eval, val_dataloader_eval = get_eval_datas(
+    #     cfg=cfg, 
+    #     args=args, 
+    #     is_dist=is_dist, 
+    #     logger=logger, 
+    #     output_dir=output_dir
+    # )
+     
     accumulated_iter = start_iter
     with tqdm.trange(start_epoch, total_epochs, desc='epochs', dynamic_ncols=True, leave=(rank == 0)) as tbar:
         total_it_each_epoch = len(train_loader)
@@ -83,6 +93,8 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 cur_scheduler = lr_warmup_scheduler
             else:
                 cur_scheduler = lr_scheduler
+            # accumulated_iter = None
+            logger.info(f"torch seed is: {torch.initial_seed()}")
             accumulated_iter = train_one_epoch(
                 model, optimizer, train_loader, model_func,
                 lr_scheduler=cur_scheduler,
@@ -95,6 +107,28 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
 
             # save trained model
             trained_epoch = cur_epoch + 1
+            # ckpt_name = ckpt_save_dir / ('checkpoint_epoch_%d' % trained_epoch)
+            # save_checkpoint(
+            #     checkpoint_state(model, optimizer, trained_epoch, accumulated_iter), filename=ckpt_name,
+            # )
+        
+            # save_to_file = True if cur_epoch > 20 else False
+            # train_eval_ret_dict, val_eval_ret_dict = eval_train_with_val_per_epoch2(
+            #     train_eval_cfg=train_eval_cfg, 
+            #     val_eval_cfg=val_eval_cfg,
+            #     model=model.module if is_dist else model,
+            #     train_dataloader_eval=train_dataloader_eval,
+            #     val_dataloader_eval=val_dataloader_eval,
+            #     epoch_id=trained_epoch,
+            #     logger=logger,
+            #     is_dist=is_dist,
+            #     eval_output_dir=eval_output_dir,
+            #     save_to_file=save_to_file,
+            #     tb_log=tb_log
+            # )
+            # logger.error("start to tensorboard>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+            # log_2_tensorboard(train_eval_ret_dict, val_eval_ret_dict, tb_log, trained_epoch)
+            
             saved_epochs = total_epochs - 10
             if trained_epoch % ckpt_save_interval == 0 and rank == 0 and trained_epoch>saved_epochs:
 
@@ -109,7 +143,6 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 save_checkpoint(
                     checkpoint_state(model, optimizer, trained_epoch, accumulated_iter), filename=ckpt_name,
                 )
-
 
 def model_state_to_cpu(model_state):
     model_state_cpu = type(model_state)()  # ordered dict

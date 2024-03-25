@@ -1,4 +1,5 @@
 import torch.nn as nn
+from al3d_det.utils.attention_utils import simam_module
 
 class BasicBlock1D(nn.Module):
 
@@ -48,6 +49,10 @@ class BasicBlock2D(nn.Module):
         self.conv = nn.Conv2d(in_channels=in_channels,
                               out_channels=out_channels,
                               **kwargs)
+        self.conv = nn.Sequential(
+            self.conv,
+            simam_module()
+        )
         self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 

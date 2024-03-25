@@ -84,6 +84,16 @@ class ANCHORMMKITTI(nn.Module):
                 param.requires_grad = False
     def forward(self, batch_dict):
         batch_dict = self.camera.img_backbone(batch_dict)
+
+        # img_feat_path_root = "/root/LoGoNet-py37/img_feat/img_feat_origin/"
+        # for id in batch_dict['frame_id']:
+        #     img_feat_path_raw = img_feat_path_root + id + '_raw.pth'
+        #     img_feat_path_extract = img_feat_path_root + id + '_ext.pth'
+        #     img_feat_raw = batch_dict['images'][0]
+        #     img_feat_ext = batch_dict['image_features']['layer1_feat2d'][0]
+        #     torch.save(img_feat_raw, img_feat_path_raw)
+        #     torch.save(img_feat_ext, img_feat_path_extract)
+
         batch_dict = self.lidar(batch_dict, self.lidar.module_list[0])
         batch_dict = self.lidar(batch_dict, self.lidar.module_list[1])
         batch_dict = self.lidar(batch_dict, self.lidar.module_list[2])

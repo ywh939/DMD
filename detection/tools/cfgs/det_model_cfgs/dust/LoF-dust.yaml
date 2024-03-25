@@ -1,7 +1,7 @@
-CLASS_NAMES: ['Car', 'Pedestrian', 'Cyclist']
+CLASS_NAMES: ['Car']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/det_dataset_cfgs/kitti_dataset_mm.yaml
+    _BASE_CONFIG_: cfgs/det_dataset_cfgs/dust_dataset.yaml
 
 MODEL:
     NAME: ANCHORMMKITTI
@@ -15,7 +15,6 @@ MODEL:
         NAME: MMDETFPNKITTI
         FREEZE_IMGBACKBONE: True
         # IMGPRETRAINED_MODEL: '../output_s2/det_model_cfgs/pretrained_ckpt/swin_tiny_patch4_window7_224.pth'
-        # IMGPRETRAINED_MODEL: '/root/datasets/swin_tiny_patch4_window7_224.pth'
         IFN:
             ARGS: {
                 "feat_extract_layer": ["layer1"],
@@ -77,33 +76,13 @@ MODEL:
         ANCHOR_GENERATOR_CONFIG: [
             {
                 'class_name': 'Car',
-                'anchor_sizes': [[3.9, 1.6, 1.56]],
+                'anchor_sizes': [[4.08, 1.95, 1.43]],
                 'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-1.78],
+                'anchor_bottom_heights': [-3.38],
                 'align_center': False,
                 'feature_map_stride': 8,
                 'matched_threshold': 0.6,
                 'unmatched_threshold': 0.45
-            },
-            {
-                'class_name': 'Pedestrian',
-                'anchor_sizes': [[0.8, 0.6, 1.73]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-0.6],
-                'align_center': False,
-                'feature_map_stride': 8,
-                'matched_threshold': 0.5,
-                'unmatched_threshold': 0.35
-            },
-            {
-                'class_name': 'Cyclist',
-                'anchor_sizes': [[1.76, 0.6, 1.73]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-0.6],
-                'align_center': False,
-                'feature_map_stride': 8,
-                'matched_threshold': 0.5,
-                'unmatched_threshold': 0.35
             }
         ]
 
@@ -167,10 +146,10 @@ MODEL:
             FUSION:
                 NAME: VoxelWithPointProjectionV2KITTI
                 FUSE_MODE: 'crossattention_deform'
-                CAMERAS: ['camera_0', 'camera_1', 'camera_2', 'camera_3', 'camera_4']
+                CAMERAS: []
                 IMAGE_SCALE: 0.5
                 INTERPOLATE: True
-                DEPTH_THRES: {'camera_0': 0, 'camera_1': 0, 'camera_2': 0, 'camera_3': 0, 'camera_4': 0}
+                DEPTH_THRES: {}
                 LAYER_CHANNEL: {'layer1': 64}
                 MID_CHANNELS: 64
                 FUSE_OUT: True
@@ -235,8 +214,8 @@ MODEL:
             NMS_POST_MAXSIZE: 500
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 1
-    NUM_EPOCHS: 200
+    BATCH_SIZE_PER_GPU: 2
+    NUM_EPOCHS: 60
 
     OPTIMIZER: adam_onecycle
     LR: 0.01

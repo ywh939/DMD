@@ -63,7 +63,10 @@ class Calibration(object):
         R0_ext[3, 3] = 1
         V2C_ext = np.vstack((self.V2C, np.zeros((1, 4), dtype=np.float32)))  # (4, 4)
         V2C_ext[3, 3] = 1
-
+        # st1 = np.dot(R0_ext, V2C_ext)
+        # st2 = st1.T
+        # st3 = np.linalg.inv(st2)
+        # st4 = np.dot(pts_rect_hom, st3)
         pts_lidar = np.dot(pts_rect_hom, np.linalg.inv(np.dot(R0_ext, V2C_ext).T))
         return pts_lidar[:, 0:3]
 

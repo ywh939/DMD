@@ -1,4 +1,5 @@
 import torch.nn as nn
+from al3d_det.utils.attention_utils import simam_module
 
 
 class HeightCompression(nn.Module):
@@ -37,5 +38,6 @@ class HeightCompression(nn.Module):
         N, C, D, H, W = spatial_features.shape
         spatial_features = spatial_features.reshape(N, C * D, H, W)
         batch_dict['spatial_features'] = spatial_features
+        # simam_module(spatial_features)
         batch_dict['spatial_features_stride'] = batch_dict['encoded_spconv_tensor_stride']
         return batch_dict

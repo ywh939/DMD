@@ -22,7 +22,6 @@ class DatasetTemplate_KITTI(torch_data.Dataset):
         self.class_names = class_names
         self.logger = logger
         self.root_path = root_path if root_path is not None else Path(self.dataset_cfg.DATA_PATH)
-        self.logger = logger
         self.use_image = getattr(self.dataset_cfg, "USE_IMAGE", False)
         self.image_scale = getattr(self.dataset_cfg, "IMAGE_SCALE", 1)
         self.load_multi_images = getattr(self.dataset_cfg, "LOAD_MULTI_IMAGES", False)

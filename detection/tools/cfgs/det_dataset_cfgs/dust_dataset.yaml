@@ -1,0 +1,42 @@
+DATASET: 'DustDataset'
+DATA_PATH: '../data/dust/'
+
+POINT_CLOUD_RANGE: [5, -6.4, -5, 53.8, 0.8, 0] 
+POINT_CLOUD_RECT_ANGLE: 56
+
+DATA_SPLIT: {
+    'train': train,
+    'test': val
+}
+
+INFO_PATH: {
+    'train': [dust_infos_train.pkl],
+    'test': [dust_infos_val.pkl],
+}
+
+USE_IMAGE: True
+GET_ITEM_LIST: ["images", "points", "gt_boxes2d"]
+
+POINT_FEATURE_ENCODING: {
+    encoding_type: absolute_coordinates_encoding,
+    used_feature_list: ['x', 'y', 'z', 'intensity'],
+    src_feature_list: ['x', 'y', 'z', 'intensity'],
+}
+
+DATA_PROCESSOR:
+    - NAME: mask_points_and_boxes_outside_range
+      REMOVE_OUTSIDE_BOXES: True
+
+    - NAME: shuffle_points
+      SHUFFLE_ENABLED: {
+        'train': True,
+        'test': False
+      }
+
+    - NAME: transform_points_to_voxels
+      VOXEL_SIZE: [0.05, 0.05, 0.1]
+      MAX_POINTS_PER_VOXEL: 5
+      MAX_NUMBER_OF_VOXELS: {
+        'train': 16000,
+        'test': 40000
+      }

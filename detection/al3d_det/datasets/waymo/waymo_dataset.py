@@ -6,7 +6,7 @@ import re
 
 import numpy as np
 import cv2
-from petrel_client.client import Client
+#from petrel_client.client import Client
 from al3d_utils import common_utils
 from al3d_utils.ops.roiaware_pool3d import roiaware_pool3d_utils
 from al3d_utils.aws_utils import list_oss_dir, oss_exist

@@ -10,7 +10,7 @@ from al3d_utils.ops.pointnet2.pointnet2_stack.pointnet2_modules import StackSAMo
 
 from al3d_det.utils import loss_utils, box_coder_utils
 from al3d_det.utils.model_nms_utils import class_agnostic_nms
-from al3d_det.utils.attention_utils import TransformerEncoder, get_positional_encoder
+from al3d_det.utils.attention_utils import TransformerEncoder, get_positional_encoder, GridFeaturesAdaptiveFusion
 from al3d_det.models import fusion_modules 
 from .proposal_target_layer import ProposalTargetLayer
 
@@ -344,7 +344,9 @@ class VoxelAggregationHead(RoIHeadTemplate):
                 fuse_out=True
         )
         GRID_SIZE = self.model_cfg.ROI_GRID_POOL.GRID_SIZE
-        pre_channel = GRID_SIZE * GRID_SIZE * GRID_SIZE * c_out
+        pre_channel = GRID_SIZE * GRID_SIZE * GRID_SIZE * c_out # 27648
+        
+        self.grid_features_adaptive_fusion = GridFeaturesAdaptiveFusion(128, 128, 32, 128)
 
         shared_fc_list = []
         for k in range(0, self.model_cfg.SHARED_FC.__len__()):
@@ -564,7 +566,8 @@ class VoxelAggregationHead(RoIHeadTemplate):
             localgrid_densityfeat_fuse = localgrid_densityfeat_fuse.reshape(pooled_features.shape[0], pooled_features.shape[1], 64)
             localgrid_densityfeat_fuse = self.up_ffn(localgrid_densityfeat_fuse.permute(0, 2, 1))
             if self.pool_cfg.DENSITYQUERY.get('COMBINE'):
-                pooled_features = pooled_features + localgrid_densityfeat_fuse.permute(0, 2, 1)
+                # pooled_features = pooled_features + localgrid_densityfeat_fuse.permute(0, 2, 1) # (Bx128, 6x6x6, 128)(256, 216, 128)
+                pooled_features = self.grid_features_adaptive_fusion(pooled_features, localgrid_densityfeat_fuse.permute(0, 2, 1))
 
 
         if self.pool_cfg.get('ATTENTION', {}).get('ENABLED'):
@@ -585,13 +588,13 @@ class VoxelAggregationHead(RoIHeadTemplate):
             pooled_features = attention_output.permute(0, 2, 1).\
                 contiguous().view(batch_size_rcnn, -1, grid_size, grid_size, grid_size) # (BxN, C, 6, 6, 6)
 
-        shared_features = self.shared_fc_layer(pooled_features.view(batch_size_rcnn, -1, 1))
-        rcnn_reg = self.reg_layers(shared_features).transpose(1, 2).contiguous().squeeze(dim=1)  # (B, C)
+        shared_features = self.shared_fc_layer(pooled_features.view(batch_size_rcnn, -1, 1)) # (256, 128, 1)
+        rcnn_reg = self.reg_layers(shared_features).transpose(1, 2).contiguous().squeeze(dim=1)  # (B, C) (256, 7)
 
         
-        rcnn_cls = self.cls_layers(shared_features)
+        rcnn_cls = self.cls_layers(shared_features) #(256, 1, 1)
 
-        rcnn_cls = rcnn_cls.transpose(1, 2).contiguous().squeeze(dim=1)
+        rcnn_cls = rcnn_cls.transpose(1, 2).contiguous().squeeze(dim=1) # (256, 1)
 
         if not self.training:
             batch_cls_preds, batch_box_preds = self.generate_predicted_boxes(
