@@ -9,6 +9,9 @@ DATA_SPLIT: {
     'test': val
 }
 
+SPATIAL_TEMPORAL_MIN_SERIES: 2
+SPATIAL_TEMPORAL_SERIES: 1
+
 INFO_PATH: {
     'train': [dust_infos_train.pkl],
     'test': [dust_infos_val.pkl],

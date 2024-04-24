@@ -8,7 +8,9 @@ try:
 except:
     pass
 from collections import OrderedDict
-from al3d_det.models.image_modules.ifn.basic_blocks import BasicBlock2D    
+from al3d_det.models.image_modules.ifn.basic_blocks import BasicBlock2D
+from .p3d import P3D
+
 class MMDETFPNKITTI(nn.Module):
     def __init__(self, model_cfg):
         super().__init__()
@@ -33,8 +35,10 @@ class MMDETFPNKITTI(nn.Module):
                          "stride": model_cfg.IFN.CHANNEL_REDUCE["stride"][_idx],
                          "bias": model_cfg.IFN.CHANNEL_REDUCE["bias"][_idx]}
             self.reduce_blocks.append(BasicBlock2D(**block_cfg))
-            
-        # self.simam = simam_module()
+
+        if self.model_cfg.SPATIAL_TEMPORAL_SERIES > 1:
+            self.p3d = P3D([3, 8, 36, 3])
+            # self.p3d = P3D([2, 2, 2, 2])
 
     def get_output_feature_dim(self):
         return self.out_channels
@@ -53,26 +57,27 @@ class MMDETFPNKITTI(nn.Module):
 
         # Extract features
         result = OrderedDict()
-        images = batch_dict['images']
+        images = batch_dict['images']#[2, 3, 600, 960]
         bs = batch_dict['batch_size']
         batch_dict['image_features'] = {}
         single_result = {}
         B, C, H, W = images.shape
-        x = self.img_backbone(images)
-        x_neck = self.neck(x)
+        if self.model_cfg.SPATIAL_TEMPORAL_SERIES <= 1:
+            x = self.img_backbone(images)
+            x_neck = self.neck(x)
+        else:
+            image_features = self.p3d(batch_dict['image_series'])
         for _idx, _layer in enumerate(self.model_cfg.IFN.ARGS['feat_extract_layer']):
-            image_features = x_neck[_idx]
-            if self.reduce_blocks[_idx] is not None:
-                image_features = self.reduce_blocks[_idx](image_features)
-            single_result[_layer+"_feat2d"] = image_features
+            if self.model_cfg.SPATIAL_TEMPORAL_SERIES <= 1:   
+                image_features = x_neck[_idx]#[2, 256, 150, 240]
+                if self.reduce_blocks[_idx] is not None:
+                    image_features = self.reduce_blocks[_idx](image_features)
+            single_result[_layer+"_feat2d"] = image_features#[2, 64, 150, 240]
         for layer in single_result.keys():
             if layer not in batch_dict['image_features'].keys():
                 batch_dict['image_features'][layer] = {}
             batch_dict['image_features'][layer]= single_result[layer]
             
-        # simam_features = self.simam(batch_dict['image_features'][layer])
-        # batch_dict['image_features'][layer] = simam_features
-        
         return batch_dict
 
     def preprocess(self, images):

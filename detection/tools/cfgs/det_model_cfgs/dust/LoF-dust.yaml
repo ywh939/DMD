@@ -13,6 +13,7 @@ MODEL:
         NAME: MeanVFE
     IMAGE_BACKBONE:
         NAME: MMDETFPNKITTI
+        SPATIAL_TEMPORAL_SERIES: 1
         FREEZE_IMGBACKBONE: True
         # IMGPRETRAINED_MODEL: '../output_s2/det_model_cfgs/pretrained_ckpt/swin_tiny_patch4_window7_224.pth'
         IFN:

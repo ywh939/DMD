@@ -50,6 +50,8 @@ def load_data_to_gpukitti(batch_dict):
             continue
         elif key in ['images']:
             batch_dict[key] = kornia.image_to_tensor(val).float().cuda().contiguous()
+        elif key in ['image_series']:
+            batch_dict[key] = torch.from_numpy(val).permute(0, 4, 1, 2, 3).float().cuda().contiguous()
         elif key in ['image_shape']:
             batch_dict[key] = torch.from_numpy(val).int().cuda()
         elif isinstance(val, np.ndarray):

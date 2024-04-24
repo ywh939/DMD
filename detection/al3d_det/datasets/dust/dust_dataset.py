@@ -208,6 +208,11 @@ class DustDataset(torch_data.Dataset):
         self.calib = None
 
         self.dust_infos = []
+
+        self.spatial_temporal_min_series = getattr(self.dataset_cfg, "SPATIAL_TEMPORAL_MIN_SERIES", 2)
+        self.spatial_temporal_series = getattr(self.dataset_cfg, "SPATIAL_TEMPORAL_SERIES", 0)
+        self.sorted_samples = []
+
         self.include_dust_data(self.mode)
     
     @property
@@ -219,6 +224,9 @@ class DustDataset(torch_data.Dataset):
             self.logger.info('Loading Dust dataset')
         dust_infos = []
 
+        # filter_path = self.root_path / 'split'/'val_30.txt'
+        # filter_id = [x.strip() for x in open(filter_path).readlines()]
+
         for info_path in self.dataset_cfg.INFO_PATH[mode]:
             info_path = self.root_path / info_path
             if not info_path.exists():
@@ -229,13 +237,72 @@ class DustDataset(torch_data.Dataset):
 
         self.dust_infos.extend(dust_infos)
 
+        # tmp_info = []
+        # for info in self.dust_infos:
+        #     if info['point_cloud']['lidar_idx'] in filter_id:
+        #         tmp_info.append(info)
+
+        # self.dust_infos = tmp_info
+        
+        # self.filter_id = [1661512340_899267, 1661512340997127, 1661512341297394]
+        # self.filter_index = []
+        if self._open_spatial_temporal():
+            for index, info in enumerate(self.dust_infos):
+                id = self._get_sample_int_id(info['point_cloud']['lidar_idx'])
+                self.sorted_samples.append(id)
+                # if id in self.filter_id:
+                #     self.filter_index.append(index)
+
+            self.sorted_samples.sort()
+            filter_samples = [self._get_sample_str_id(item) for item in self.sorted_samples[0:self.spatial_temporal_series-1]]
+            tmp_dust_infos = [item for item in self.dust_infos if item['point_cloud']['lidar_idx'] not in filter_samples]
+            self.dust_infos = tmp_dust_infos
+
+        # batch_list = [self.__getitem__(9), self.__getitem__(20)]
+        # ret = self.collate_batch(batch_list)
+        # import torch
+        # ret['image_series'] = torch.from_numpy(ret['image_series']).permute(0, 4, 1, 2, 3).float().contiguous()
+        
+        # from ...models.image_modules.p3d import P3D
+        # self.p3d = P3D([3, 8, 36, 3])
+        # self.p3d(ret['image_series'])
+
         if self.logger is not None:
-            self.logger.info('Total samples for Dust dataset: %d' % (len(dust_infos)))
+            self.logger.info('Total samples for Dust dataset: %d' % (len(self.dust_infos)))
     
     def __len__(self):
         return len(self.dust_infos)
+    
+    def _open_spatial_temporal(self):
+        return self.spatial_temporal_series >= self.spatial_temporal_min_series
+    
+    def _get_sample_str_id(self, int_id):
+        rect_id = list(str(int_id))
+        rect_id.insert(10, '_')
+        return ''.join(rect_id)
+    
+    def _get_sample_int_id(self, str_id):
+        return int(str_id.replace('_', ''))
+    
+    def _get_image_series(self, sample_idx):
+        sorted_sample_index = self.sorted_samples.index(self._get_sample_int_id(sample_idx))
+        image_series = []
+        for i in range(self.spatial_temporal_series, 0, -1):
+            former_sample_id = self.sorted_samples[sorted_sample_index - i + 1]
+            image_series.append(self.get_image(self._get_sample_str_id(former_sample_id)))
+        return np.stack(image_series, axis=0)
 
     def __getitem__(self, index):
+        # if self._open_spatial_temporal():
+        #     rect_sample_idx = int(self.dust_infos[index]['point_cloud']['lidar_idx'].replace('_', ''))
+        #     sorted_sample_index = self.sorted_samples.index(rect_sample_idx)
+        #     if self.spatial_temporal_series - 1 >= sorted_sample_index + 1:
+        #         index += self.spatial_temporal_series - 1 - sorted_sample_index
+
+        # sample_idx = self.dust_infos[index]['point_cloud']['lidar_idx']
+        # a = self._get_image_series(sample_idx)
+        # return
+
         info = copy.deepcopy(self.dust_infos[index])
 
         sample_idx = info['point_cloud']['lidar_idx']
@@ -273,7 +340,9 @@ class DustDataset(torch_data.Dataset):
         if "images" in get_item_list:
             input_dict['images'] = self.get_image(sample_idx)
             input_dict['image_shape'] = info['image']['image_shape']
-        
+            if self._open_spatial_temporal():
+                input_dict['image_series'] = self._get_image_series(sample_idx)
+
         data_dict = self.prepare_data(data_dict=input_dict)
 
         return data_dict
