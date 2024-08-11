@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${fileDirname}",
+            "args": [
+                // "--fix_random_seed",
+                "--eval_train_val",
+                // "--eval_all",
+                // "--ckpt",
+                // "/root/cloud-logo-py36/detection/output/det_model_cfgs/kitti/LoGoNet-kitti/default/ckpt/checkpoint_epoch_1.pth",
+                // "/root/LoGoNet-py37/detection/output/det_model_cfgs/dust/LoF-dust/dust_single_fusion/ckpt/checkpoint_epoch_60.pth",
+                // "/root/LoGoNet-py37/detection/output/det_model_cfgs/dust/LoF-dust/dust_single_simfusion/ckpt/checkpoint_epoch_39.pth",
+                // "/root/LoGoNet-py37/detection/output/det_model_cfgs/dust/LoF-dust/dust_single_origin/ckpt/checkpoint_epoch_54.pth",
+                "--cfg_file",
+                // "cfgs/det_model_cfgs/dust/LoF-dust.yaml",
+                "cfgs/det_model_cfgs/mine/LoF-mine.yaml",
+                // "cfgs/det_model_cfgs/kitti/LoGoNet-kitti.yaml",
+                "--workers",
+                "8",
+                "--extra_tag",
+                "mine_single_fusion_simam_truck_object_larger_sample_60e",
+                // "--max_ckpt_save_num",
+                // "100"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            }
+        }
+    ]
+}

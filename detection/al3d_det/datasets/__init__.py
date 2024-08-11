@@ -10,6 +10,7 @@ from al3d_utils import common_utils
 from .kitti.kitti_dataset import KittiDataset
 # from .nuscenes.nuscenes_dataset import NuScenesDataset
 from .dust.dust_dataset import DustDataset
+from .mine.mine_dataset import MineDataset
 
 __all__ = {
     # 'DatasetTemplate': DatasetTemplate,
@@ -18,7 +19,8 @@ __all__ = {
     # 'DatasetTemplate_KITTI': DatasetTemplate_KITTI,
     'KittiDataset': KittiDataset,
     # 'NuScenesDataset': NuScenesDataset,
-    'DustDataset': DustDataset
+    'DustDataset': DustDataset,
+    'MineDataset': MineDataset
 }
 
 
@@ -74,9 +76,10 @@ def build_dataloader(dataset_cfg, class_names, batch_size, dist, root_path=None,
     if length > 0:
         indices = torch.arange(len(dataset))[:length]
         new_dataset = Subset(dataset, indices)
-
+    
     dataloader = DataLoader(
         new_dataset, batch_size=batch_size, pin_memory=True, num_workers=workers,
+        # shuffle=False, collate_fn=dataset.collate_batch,
         shuffle=(sampler is None) and training, collate_fn=dataset.collate_batch,
         drop_last=False, sampler=sampler, timeout=0
     )
@@ -96,3 +99,10 @@ def test_create_dust_infos(dataset_cfg, root_dir):
         class_names=['Car'],
         data_path=root_dir / 'data' / 'dust',
         save_path=root_dir / 'data' / 'dust')
+
+def test_create_mine_infos(dataset_cfg, root_dir):
+    from .mine.mine_dataset import create_mine_infos
+    create_mine_infos(dataset_cfg=dataset_cfg,
+        class_names=['Mining-Truck'],
+        data_path=root_dir / 'data' / 'mine',
+        save_path=root_dir / 'data' / 'mine')
